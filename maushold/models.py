@@ -2,16 +2,16 @@ import shapely
 
 from enum import Enum
 from pydantic import BaseModel
-from typing import Any
+from typing import Any, Optional
 
 class DbRow(BaseModel):
     geo_id: str
     clat: float
     clon: float
-    minX: float
-    minY: float
-    maxX: float
-    maxY: float
+    minX: Optional[float]
+    minY: Optional[float]
+    maxX: Optional[float]
+    maxY: Optional[float]
     geometry: dict
     area: float
     housing: int
@@ -38,6 +38,21 @@ class CensusCategory(str, Enum):
     tract = 'tract'
     block_group = 'block_group'
     block = 'block'
+
+    def to_table(self) -> str:
+        match self:
+            case self.state:
+                return "states"
+            case self.county:
+                return "counties"
+            case self.tract:
+                return "tracts"
+            case self.block_group:
+                return "block_groups"
+            case self.block:
+                return "blocks"
+            case _:
+                return ""
 
 class BoundingBox(BaseModel):
     minX: float

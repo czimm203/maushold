@@ -5,7 +5,7 @@ from .models import CensusCategory, DbRow, PopQuery, GeoRefPopQuery
 
 
 async def get_connection() -> sqlite3.Connection:
-    conn = await sqlite3.connect("./data/census.db")
+    conn = await sqlite3.connect("file:./data/census.db?mode=ro&cache=shared&journal_mode=off&sync=off", uri=True)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -55,25 +55,33 @@ async def get_row_by_bbox(cat: CensusCategory, minX: float, minY: float, maxX: f
             index = 'v_block_groups'
             table = 'block_groups'
         case cat.block:
-            index = 'v_blocks'
-            table = 'blocks'
+            index = 'v_blocks_clean'
+            table = 'blocks_clean'
         case _:
             return []
     conn = await get_connection()
     # cur = await conn.cursor()
-    cur = await conn.execute(f"""SELECT x.geo_id, x.pop, x.lon, x.lat FROM (
-                        SELECT {table}.geo_id AS geo_id,
-                               {table}.pop AS pop,
-                               {table}.clon AS lon,
-                               {table}.clat AS lat,
-                               {index}.minX AS minX,
-                               {index}.minY AS minY,
-                               {index}.maxX AS maxX,
-                               {index}.maxY AS maxY
-                        FROM {table}
-                        INNER JOIN {index}
-                        ON {table}.geo_id = {index}.geo_id
-                    ) AS x
-                WHERE x.minX >= ? AND x.minY >= ? AND x.maxX <= ? AND x.maxY <= ? AND x.pop != 0""", (minX, minY, maxX, maxY))
+    match cat:
+        case cat.block:
+            cur = await conn.execute(f"""SELECT geo_id, pop, clon as lon, clat as lat
+                                         FROM v_blocks_clean
+                                         WHERE minX >= ? AND minY >= ? AND maxX <= ? AND maxY <= ? AND pop != 0""",
+                                     (minX, minY, maxX, maxY))
+
+        case _:
+            cur = await conn.execute(f"""SELECT x.geo_id, x.pop, x.lon, x.lat FROM (
+                                SELECT {table}.geo_id AS geo_id,
+                                       {table}.pop AS pop,
+                                       {table}.clon AS lon,
+                                       {table}.clat AS lat,
+                                       {index}.minX AS minX,
+                                       {index}.minY AS minY,
+                                       {index}.maxX AS maxX,
+                                       {index}.maxY AS maxY
+                                FROM {table}
+                                INNER JOIN {index}
+                                ON {table}.geo_id = {index}.geo_id
+                            ) AS x
+                        WHERE x.minX >= ? AND x.minY >= ? AND x.maxX <= ? AND x.maxY <= ? AND x.pop != 0""", (minX, minY, maxX, maxY))
     res = await cur.fetchall()
     return [GeoRefPopQuery.parse_obj(row) for row in res]

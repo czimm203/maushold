@@ -1,9 +1,26 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from maushold.db import get_pop_data, get_row_data, get_ids, get_row_by_bbox
 from maushold.models import CensusCategory, Polygon
 
 app = FastAPI(title="Maushold", description="Simple API for getting georeferenced population data")
 
+app = FastAPI()
+
+origins = [
+    "http://localhost.tiangolo.com",
+    "https://localhost.tiangolo.com",
+    "http://localhost",
+    "http://localhost:8080",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 @app.get("/")
 async def root():
     return {"message": "Hi, feller"}
@@ -91,7 +108,7 @@ async def get(cat: CensusCategory, minX: float, minY: float, maxX: float, maxY: 
     data = await get_row_by_bbox(cat, float(minX), float(minY), float(maxX), float(maxY))
     return data
 
-@app.get("/bbox/{cat}/total")
+@app.get("/bbox/{cat}/pop")
 async def get_row_total(cat: CensusCategory, minX: float, minY: float, maxX: float, maxY: float):
     data = await get_row_by_bbox(cat, float(minX), float(minY), float(maxX), float(maxY))
     pop = 0
@@ -108,3 +125,13 @@ async def get_pop_by_polygon(cat: CensusCategory, geometry: Polygon):
         if geometry.contains_pt(row.lon, row.lat):
             res.append(row)
     return res
+
+@app.post("/polygon/{cat}/pop")
+async def get_pop_total_by_polygon(cat: CensusCategory, geometry: Polygon):
+    bbox = geometry.bounds()
+    data = await get_row_by_bbox(cat, bbox.minX, bbox.minY, bbox.maxX, bbox.maxY)
+    sum = 0
+    for row in data:
+        if geometry.contains_pt(row.lon, row.lat):
+            sum += row.pop
+    return sum
