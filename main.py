@@ -32,19 +32,19 @@ async def root():
     return {"message": "Hi, feller"}
 
 @app.get("/{cat}")
-async def get_state_ids(cat: CensusCategory, limit=10_000, offset=0):
+async def get_cat_ids(cat: CensusCategory, limit=10_000, offset=0):
     async with pool.connection() as conn:
         data = await get_ids(conn, cat, limit, offset)
     return data
 
 @app.get("/{cat}/{id}/pop")
-async def get_state_pop(cat: CensusCategory, id: str):
+async def get_cat_pop(cat: CensusCategory, id: str):
     async with pool.connection() as conn:
         data = await get_pop_data(conn, cat,id)
     return data
 
 @app.get("/{cat}/{id}")
-async def get_state(cat: CensusCategory, id: str):
+async def get_cat_by_id(cat: CensusCategory, id: str):
     async with pool.connection() as conn:
         data = await get_row_data(conn, cat,id)
     return data

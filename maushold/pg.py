@@ -42,9 +42,9 @@ async def get_row_data(conn: AsyncConnection, table: str, id: str, offset:int = 
         data.append(DbRow(**row)) #type: ignore
     return data
 
-async def get_pop_data(conn: AsyncConnection, table: str, id: str) -> list[PopQuery]:
+async def get_pop_data(conn: AsyncConnection, cat: CensusCategory, id: str) -> list[PopQuery]:
     cur = conn.cursor(row_factory=class_row(PopQuery))
-    await cur.execute(f"SELECT geo_id, pop FROM {table} WHERE geo_id LIKE %s", (id.replace('*', '%'),)) #type: ignore
+    await cur.execute(f"SELECT geo_id, pop FROM {cat.to_table()} WHERE geo_id LIKE %s", (id.replace('*', '%'),)) #type: ignore
     res = await cur.fetchall()
     await cur.close()
     return res
