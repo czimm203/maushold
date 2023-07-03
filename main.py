@@ -1,10 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pandas.core.window.rolling import RollingAndExpandingMixin
 from shapely.geometry.base import shapely
 # from maushold.db import get_pop_data, get_row_data, get_ids, get_row_by_bbox
 from maushold.pg import get_pop_data, get_row_data, get_ids, get_row_by_polygon, register_types
-from maushold.models import CensusCategory, Polygon
+from maushold.models import CensusCategory, Polygon, GeoJSON
 from psycopg_pool import AsyncConnectionPool
 
 DSN = "user=cole password=michelle21 host=localhost dbname=census"
@@ -63,9 +62,7 @@ async def get_row_total(cat: CensusCategory, minX: float, minY: float, maxX: flo
     async with pool.connection() as conn:
         await(register_types(conn))
         data = await get_row_by_polygon(conn, cat, poly)
-    pop = 0
-    for row in data:
-        pop += row.pop
+    pop = sum([row.pop for row in data if row.pop is not None])
     return {"pop":pop}
 
 @app.post("/polygon/{cat}")
@@ -73,7 +70,6 @@ async def get_pop_by_polygon(cat: CensusCategory, geometry: Polygon):
     poly = shapely.Polygon(geometry.coordinates[0])
     async with pool.connection() as conn:
         await(register_types(conn))
-    bbox = geometry.bounds()
     data = await get_row_by_polygon(conn, cat, poly)
     res = []
     for row in data:
@@ -82,13 +78,9 @@ async def get_pop_by_polygon(cat: CensusCategory, geometry: Polygon):
     return res
 
 @app.post("/polygon/{cat}/pop")
-async def get_pop_total_by_polygon(cat: CensusCategory, geometry: Polygon):
-    poly = shapely.Polygon(geometry.coordinates[0])
+async def get_pop_total_by_polygon(cat: CensusCategory, geometry: GeoJSON):
     async with pool.connection() as conn:
         await register_types(conn)
-        data = await get_row_by_polygon(conn, cat, poly)
-    sum = 0
-    for row in data:
-        if geometry.contains_pt(row.lon, row.lat):
-            sum += row.pop
-    return sum
+        data = await get_row_by_polygon(conn, cat, geometry)
+    pop = sum([row.pop for row in data if row.pop is not None])
+    return pop

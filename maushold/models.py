@@ -1,8 +1,10 @@
+from numpy import poly
 import shapely
 
 from enum import Enum
 from pydantic import BaseModel
-from typing import Any, Optional
+from shapely.geometry import shape
+from typing import Any, Optional, Union
 
 class DbRow(BaseModel):
     geo_id: str
@@ -22,15 +24,27 @@ class PopQuery(BaseModel):
     pop: int
 
 class GeoRefPopQuery(BaseModel):
-    geo_id: str
-    pop: int
+    geo_id: str 
+    pop: int | None
     lon: float
     lat: float
 
-class GeoJSONFeat(BaseModel):
-    type: str
-    geometry: list[float] | list[list[float]] | list[list[list[float]]] | list[list[list[list[float]]]]
-    properties: dict[str, Any]
+class PolygonType(str, Enum):
+    Polygon = "Polygon"
+    MultiPolygon = "MultiPolygon"
+    GeometryCollection = "GeometryCollection"
+
+class GeoJSON(BaseModel):
+    type: PolygonType
+    coordinates: list[float] | list[list[float]] | list[list[list[float]]] | list[list[list[list[float]]]]
+    properties: Optional[dict[str, Any]]
+
+    def to_shapely(self):
+        match self.type:
+            case 'Polygon' | 'MultiPolygon':
+                return shape(self.__dict__)
+            case 'GeometryCollection':
+                return shapely.GeometryCollection(self.coordinates)
 
 class CensusCategory(str, Enum):
     state = 'state'

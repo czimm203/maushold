@@ -2,8 +2,8 @@ import json
 import psycopg as pg
 import shapely
 
-from .models import DbRow, PopQuery, CensusCategory, GeoRefPopQuery
-from psycopg import AsyncConnection, Connection
+from .models import DbRow, PopQuery, CensusCategory, GeoRefPopQuery, Polygon, GeoJSON
+from psycopg import AsyncConnection
 from psycopg.rows import class_row, dict_row
 from psycopg.types import TypeInfo
 from psycopg.types.shapely import register_shapely
@@ -50,14 +50,17 @@ async def get_pop_data(conn: AsyncConnection, cat: CensusCategory, id: str) -> l
     return res
 
 
-async def get_row_by_polygon(conn: AsyncConnection, cat: CensusCategory, geom: shapely.Polygon) -> list[GeoRefPopQuery]:
+async def get_row_by_polygon(conn: AsyncConnection, cat: CensusCategory, geom: GeoJSON) -> list[GeoRefPopQuery]:
     cur = conn.cursor(row_factory=class_row(GeoRefPopQuery))
+    geo = geom.to_shapely()
+    if geo is None:
+        return[GeoRefPopQuery(geo_id = "",pop = -1, lon = 0, lat = 0)]
     await cur.execute(f"""SELECT geo_id, pop,
                            clon AS lon,
                            clat AS lat
                     FROM {cat.to_table()}
                     WHERE ST_Intersects(geog, %s)""", #type: ignore
-                (geom,)) 
+                (geo,)) 
     res = await cur.fetchall()
     await cur.close()
     return res
