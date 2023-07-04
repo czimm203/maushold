@@ -123,10 +123,18 @@ def create_rtree_index(db, table: str):
 
 
 if __name__ == "__main__":
+    import os
+    from dotenv import load_dotenv
     data_dir = Path("./data")
+    load_dotenv()
+    pg_user = os.getenv("PGUSER")
+    pg_pass = os.getenv("PGPASS")
+    pg_host = os.getenv("PGHOST")
+    pg_db = os.getenv("PGDB")
+    DSN = f"user={pg_user} password={pg_pass} host={pg_host} dbname={pg_db}"
     
     try:
-        conn = pg.connect("user=cole password=michelle21 dbname=census host=localhost")
+        conn = pg.connect(DSN)
         conn.cursor().execute("CREATE EXTENSION IF NOT EXISTS postgis;")
 
         # create_table(conn, "states")

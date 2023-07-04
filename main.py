@@ -1,3 +1,6 @@
+import os
+
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from shapely.geometry.base import shapely
@@ -6,7 +9,13 @@ from maushold.pg import get_pop_data, get_row_data, get_ids, get_row_by_polygon,
 from maushold.models import CensusCategory, Polygon, GeoJSON
 from psycopg_pool import AsyncConnectionPool
 
-DSN = "user=cole password=michelle21 host=localhost dbname=census"
+load_dotenv()
+pg_user = os.getenv("PGUSER")
+pg_pass = os.getenv("PGPASS")
+pg_host = os.getenv("PGHOST")
+pg_db = os.getenv("PGDB")
+DSN = f"user={pg_user} password={pg_pass} host={pg_host} dbname={pg_db}"
+
 pool = AsyncConnectionPool(DSN)
 app = FastAPI(title="Maushold", description="Simple API for getting georeferenced population data")
 
