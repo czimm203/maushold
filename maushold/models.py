@@ -23,6 +23,9 @@ class PopQuery(BaseModel):
     geo_id: str
     pop: int
 
+class PopTotal(BaseModel):
+    pop: int
+
 class GeoRefPopQuery(BaseModel):
     geo_id: str 
     pop: int | None
