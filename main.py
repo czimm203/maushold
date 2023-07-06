@@ -50,6 +50,11 @@ async def get_cat_ids(cat: CensusCategory, limit=10_000, offset=0) -> list[str]:
 
 @app.get("/{cat}/{id}/pop")
 async def get_cat_pop(cat: CensusCategory, id: str) -> list[PopQuery]:
+    r"""
+    Retrieve population by FIPS id. Values can be matched using the '*' operator. Use commas to separate multiple ids.
+
+    Ex: /tract/20109\*,01001\*/pop
+    """
     res = []
     async with pool.connection() as conn:
         for code in id.split(","):
@@ -59,6 +64,11 @@ async def get_cat_pop(cat: CensusCategory, id: str) -> list[PopQuery]:
 
 @app.get("/{cat}/{id}")
 async def get_cat_by_id(cat: CensusCategory, id: str) -> list[DbRow]:
+    r"""
+    Retrieve population by FIPS id. Values can be matched using the '*' operator. Use commas to separate multiple ids.
+
+    Ex: /tract/20109\*,01001\*
+    """
     async with pool.connection() as conn:
         res = []
         for code in id.split(","):
