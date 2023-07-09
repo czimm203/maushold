@@ -5,8 +5,10 @@ from sys import exception
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic.errors import PydanticTypeError
 from shapely.geometry.base import shapely
+from starlette.responses import HTMLResponse
 # from maushold.db import get_pop_data, get_row_data, get_ids, get_row_by_bbox
 from maushold.pg import get_pop_data, get_row_data, get_ids, get_row_by_polygon, register_types
 from maushold.models import CensusCategory, DbRow, GeoRefPopQuery, Polygon, GeoJSON, PopQuery, PopTotal
@@ -38,9 +40,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/assets", StaticFiles(directory="./viewer/dist", html=True), name="assets")
+
 @app.get("/")
 async def root():
-    return {"message": "Hi, feller"}
+    with open("./viewer/dist/index.html") as f:
+        html = f.read()
+    return HTMLResponse(html)
 
 @app.get("/{cat}")
 async def get_cat_ids(cat: CensusCategory, limit=10_000, offset=0) -> list[str]:
