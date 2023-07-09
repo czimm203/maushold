@@ -137,35 +137,35 @@ if __name__ == "__main__":
         conn = pg.connect(DSN)
         conn.cursor().execute("CREATE EXTENSION IF NOT EXISTS postgis;")
 
-        # create_table(conn, "states")
-        # create_table(conn, "blocks")
-        # create_table(conn, "block_groups")
-        # create_table(conn, "tracts")
-        # create_table(conn, "counties")
+        create_table(conn, "states")
+        create_table(conn, "blocks")
+        create_table(conn, "block_groups")
+        create_table(conn, "tracts")
+        create_table(conn, "counties")
 
 
-        # for file in (data_dir / "block_groups").iterdir():
-        #     print("Working on file: ", file)
-        #     df = make_geo_dataframe(file)
-        #     populate_table(conn, "block_groups", df)
+        for file in (data_dir / "block_groups").iterdir():
+            print("Working on file: ", file)
+            df = make_geo_dataframe(file)
+            populate_table(conn, "block_groups", df)
 
-        # for file in (data_dir / "tracts").iterdir():
-        #     print("Working on file: ", file)
-        #     df = make_geo_dataframe(file)
-        #     populate_table(conn, "tracts", df)
+        for file in (data_dir / "tracts").iterdir():
+            print("Working on file: ", file)
+            df = make_geo_dataframe(file)
+            populate_table(conn, "tracts", df)
 
-        # print("Working on states")
-        # df = make_geo_dataframe(data_dir/"tl_2022_us_state.zip")
-        # populate_table(conn, "states", df)
+        print("Working on states")
+        df = make_geo_dataframe(data_dir/"tl_2022_us_state.zip")
+        populate_table(conn, "states", df)
 
-        # print("Working on counties")
-        # df = make_geo_dataframe(data_dir/"tl_2022_us_county.zip")
-        # populate_table(conn, "counties", df)
+        print("Working on counties")
+        df = make_geo_dataframe(data_dir/"tl_2022_us_county.zip")
+        populate_table(conn, "counties", df)
 
-        # create_id_index(conn, "block_groups")
-        # create_id_index(conn, "tracts")
-        # create_id_index(conn, "counties")
-        # create_id_index(conn, "states")
+        create_id_index(conn, "block_groups")
+        create_id_index(conn, "tracts")
+        create_id_index(conn, "counties")
+        create_id_index(conn, "states")
 
         for file in (data_dir / "blocks").iterdir():
             print("Working on file: ", file)
@@ -176,7 +176,7 @@ if __name__ == "__main__":
         create_id_index(conn, "blocks")
 
         for table in ["blocks", "block_groups", "tracts", "counties", "states"]:
-            print("Creating rtree for ", table)
+            print("Creating spatial index for ", table)
             create_gist_index(conn, table)
     finally:
         conn.commit()

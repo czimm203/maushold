@@ -100,19 +100,6 @@ async def post_pop_by_polygon(cat: CensusCategory, geometry: GeoJSON) -> list[Ge
     data = await get_row_by_polygon(conn, cat, geometry)
     return data
 
-@app.get("/polygon/{cat}/pop")
-async def post_pop_total_by_polygon(cat: CensusCategory, json_str: str) -> PopTotal:
-    async with pool.connection() as conn:
-        await register_types(conn)
-        geojson = json.loads(json_str)
-        try:
-            geometry = GeoJSON(**geojson)
-        except PydanticTypeError:
-            raise HTTPException(status_code=422, detail="invalid geojson")
-        data = await get_row_by_polygon(conn, cat, geometry)
-    pop = sum([row.pop for row in data if row.pop is not None])
-    return PopTotal(pop=pop)
-
 @app.get("/polygon/{cat}")
 async def get_pop_by_polygon(cat: CensusCategory, json_str: str) -> list[GeoRefPopQuery]:
     async with pool.connection() as conn:
@@ -132,3 +119,18 @@ async def get_pop_total_by_polygon(cat: CensusCategory, geometry: GeoJSON) -> Po
         data = await get_row_by_polygon(conn, cat, geometry)
     pop = sum([row.pop for row in data if row.pop is not None])
     return PopTotal(pop=pop)
+
+@app.get("/polygon/{cat}/pop")
+async def post_pop_total_by_polygon(cat: CensusCategory, json_str: str) -> PopTotal:
+    async with pool.connection() as conn:
+        await register_types(conn)
+        geojson = json.loads(json_str)
+        try:
+            geometry = GeoJSON(**geojson)
+        except PydanticTypeError:
+            raise HTTPException(status_code=422, detail="invalid geojson")
+        data = await get_row_by_polygon(conn, cat, geometry)
+    pop = sum([row.pop for row in data if row.pop is not None])
+    return PopTotal(pop=pop)
+
+

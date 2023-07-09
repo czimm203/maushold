@@ -1,8 +1,6 @@
-import json
 import psycopg as pg
-import shapely
 
-from .models import DbRow, PopQuery, CensusCategory, GeoRefPopQuery, Polygon, GeoJSON
+from .models import DbRow, PopQuery, CensusCategory, GeoRefPopQuery, GeoJSON
 from psycopg import AsyncConnection
 from psycopg.rows import class_row, dict_row
 from psycopg.types import TypeInfo
@@ -49,7 +47,6 @@ async def get_pop_data(conn: AsyncConnection, cat: CensusCategory, id: str) -> l
     await cur.close()
     return res
 
-
 async def get_row_by_polygon(conn: AsyncConnection, cat: CensusCategory, geom: GeoJSON) -> list[GeoRefPopQuery]:
     cur = conn.cursor(row_factory=class_row(GeoRefPopQuery))
     geo = geom.to_shapely()
@@ -65,18 +62,3 @@ async def get_row_by_polygon(conn: AsyncConnection, cat: CensusCategory, geom: G
     await cur.close()
     return res
 
-# async def get_async_connection(path: str) -> pg.connection.Connection:
-#     conn = pg.a(path)
-#     return conn
-
-# if __name__ == '__main__':
-#     conn = get_async_connection("user=cole password=michelle21 host=localhost dbname=census")
-#     coords = [(-100,34),
-#               (-97, 34),
-#               (-97, 37),
-#               (-100, 37),
-#               (-100, 34)]
-#     data = get_row_by_bbox(conn, CensusCategory.block, shapely.Polygon(coords))
-#     print(data)
-
-#     conn.close()

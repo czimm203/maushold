@@ -1,10 +1,9 @@
-from numpy import poly
 import shapely
 
 from enum import Enum
 from pydantic import BaseModel
 from shapely.geometry import shape
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 class DbRow(BaseModel):
     geo_id: str
