@@ -49,7 +49,7 @@ type popResponse = {
 }
 async function postData(jsonstr: string): Promise<[popResponse,popResponse]> {
   console.log(jsonstr);
-  let bgRes = await fetch("http://maushold.home/polygon/block_group/pop", {
+  let bgRes = await fetch("/polygon/block_group/pop", {
     method:"POST",
     body: jsonstr,
     headers: {
@@ -58,7 +58,7 @@ async function postData(jsonstr: string): Promise<[popResponse,popResponse]> {
     }
   });
   let j = await bgRes.json();
-  let blRes = await fetch("http://maushold.home/polygon/block/pop", {
+  let blRes = await fetch("/polygon/block/pop", {
     method:"POST",
     body: jsonstr,
     headers: {

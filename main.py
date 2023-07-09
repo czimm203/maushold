@@ -41,7 +41,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/assets", StaticFiles(directory="./viewer/dist", html=True), name="assets")
+app.mount("/assets", StaticFiles(directory="./viewer/dist/assets", html=True), name="assets")
 
 @app.get("/")
 async def root():
