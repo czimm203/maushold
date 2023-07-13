@@ -1,6 +1,11 @@
+from __future__ import annotations
+from collections.abc import AsyncGenerator
+
 from .db import DataBase
 from .models import DbRow, PopQuery, CensusCategory, GeoRefPopQuery, GeoJSON
+from contextlib import asynccontextmanager
 from psycopg import AsyncConnection
+from psycopg_pool import AsyncConnectionPool
 from psycopg.rows import class_row, dict_row
 from psycopg.types import TypeInfo
 from psycopg.types.shapely import register_shapely
@@ -10,6 +15,26 @@ async def register_types(conn: AsyncConnection):
     info = await TypeInfo.fetch(conn, "geometry")
     if info is not None:
         register_shapely(info, conn)
+
+class PgConnector:
+    def __init__(self, *args, **kwargs) -> None:
+        self.pool = AsyncConnectionPool(*args, **kwargs)
+
+    @asynccontextmanager
+    async def connection(self):
+        try:
+            conn = await self.pool.getconn()
+            db = PgDB(conn)
+            yield db
+            await conn.commit()
+        except:
+            raise ValueError("oops")
+        finally:
+            if db is not None:
+                print("pg")
+                await self.pool.putconn(db.conn)
+
+        
 
 class PgDB(DataBase):
     def __init__(self, connection: AsyncConnection):
@@ -61,4 +86,5 @@ class PgDB(DataBase):
         res = await cur.fetchall()
         await cur.close()
         return res
+
 
