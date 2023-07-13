@@ -10,7 +10,7 @@ from pydantic.errors import PydanticTypeError
 from shapely.geometry.base import shapely
 from starlette.responses import HTMLResponse
 # from maushold.db import get_pop_data, get_row_data, get_ids, get_row_by_bbox
-from maushold.pg import get_pop_data, get_row_data, get_ids, get_row_by_polygon, register_types
+from maushold.pg import PgDB# get_pop_data, get_row_data, get_ids, get_row_by_polygon, register_types
 from maushold.models import CensusCategory, DbRow, GeoRefPopQuery, Polygon, GeoJSON, PopQuery, PopTotal
 from psycopg_pool import AsyncConnectionPool
 
@@ -52,7 +52,8 @@ async def root():
 @app.get("/{cat}")
 async def get_cat_ids(cat: CensusCategory, limit=10_000, offset=0) -> list[str]:
     async with pool.connection() as conn:
-        data = await get_ids(conn, cat, limit, offset)
+        db = PgDB(conn)
+        data = await db.get_ids(cat, limit, offset)
     return data
 
 @app.get("/{cat}/{id}/pop")
@@ -64,8 +65,9 @@ async def get_cat_pop(cat: CensusCategory, id: str) -> list[PopQuery]:
     """
     res = []
     async with pool.connection() as conn:
+        db = PgDB(conn)
         for code in id.split(","):
-            data = await get_pop_data(conn, cat, code)
+            data = await db.get_pop_data(cat, code)
             [res.append(item) for item in data]
     return res
 
@@ -77,9 +79,10 @@ async def get_cat_by_id(cat: CensusCategory, id: str) -> list[DbRow]:
     Ex: /tract/20109\*,01001\*
     """
     async with pool.connection() as conn:
+        db = PgDB(conn)
         res = []
         for code in id.split(","):
-            data = await get_row_data(conn, cat, code)
+            data = await db.get_row_data(cat, code)
             [res.append(item) for item in data]
     return res
 
@@ -87,56 +90,56 @@ async def get_cat_by_id(cat: CensusCategory, id: str) -> list[DbRow]:
 async def get(cat: CensusCategory, minX: float, minY: float, maxX: float, maxY: float) -> list[GeoRefPopQuery]:
     poly = shapely.Polygon([(minX, minY), (maxX, minY), (maxX,maxY), (minX, maxY), (minX, minY)])
     async with pool.connection() as conn:
-        await(register_types(conn))
-        data = await get_row_by_polygon(conn, cat, poly)
+        db = PgDB(conn)
+        data = await db.get_row_by_polygon(cat, poly)
     return data
 
 @app.get("/bbox/{cat}/pop")
 async def get_row_total(cat: CensusCategory, minX: float, minY: float, maxX: float, maxY: float) -> PopTotal:
     poly = shapely.Polygon([(minX, minY), (maxX, minY), (maxX,maxY), (minX, maxY), (minX, minY)])
     async with pool.connection() as conn:
-        await(register_types(conn))
-        data = await get_row_by_polygon(conn, cat, poly)
+        db = PgDB(conn)
+        data = await db.get_row_by_polygon(cat, poly)
     pop = sum([row.pop for row in data if row.pop is not None])
     return PopTotal(pop=pop)
 
 @app.post("/polygon/{cat}")
 async def post_pop_by_polygon(cat: CensusCategory, geometry: GeoJSON) -> list[GeoRefPopQuery]:
     async with pool.connection() as conn:
-        await(register_types(conn))
-    data = await get_row_by_polygon(conn, cat, geometry)
+        db = PgDB(conn)
+        data = await db.get_row_by_polygon(cat, geometry)
     return data
 
 @app.get("/polygon/{cat}")
 async def get_pop_by_polygon(cat: CensusCategory, json_str: str) -> list[GeoRefPopQuery]:
     async with pool.connection() as conn:
-        await(register_types(conn))
+        db = PgDB(conn)
         geojson = json.loads(json_str)
         try:
             geometry = GeoJSON(**geojson)
         except PydanticTypeError:
             raise HTTPException(status_code=422, detail="invalid geojson")
-    data = await get_row_by_polygon(conn, cat, geometry)
+    data = await db.get_row_by_polygon(cat, geometry)
     return data
 
 @app.post("/polygon/{cat}/pop")
 async def get_pop_total_by_polygon(cat: CensusCategory, geometry: GeoJSON) -> PopTotal:
     async with pool.connection() as conn:
-        await register_types(conn)
-        data = await get_row_by_polygon(conn, cat, geometry)
+        db = PgDB(conn)
+        data = await db.get_row_by_polygon(cat, geometry)
     pop = sum([row.pop for row in data if row.pop is not None])
     return PopTotal(pop=pop)
 
 @app.get("/polygon/{cat}/pop")
 async def post_pop_total_by_polygon(cat: CensusCategory, json_str: str) -> PopTotal:
     async with pool.connection() as conn:
-        await register_types(conn)
+        db = PgDB(conn)
         geojson = json.loads(json_str)
         try:
             geometry = GeoJSON(**geojson)
         except PydanticTypeError:
             raise HTTPException(status_code=422, detail="invalid geojson")
-        data = await get_row_by_polygon(conn, cat, geometry)
+        data = await db.get_row_by_polygon(cat, geometry)
     pop = sum([row.pop for row in data if row.pop is not None])
     return PopTotal(pop=pop)
 
