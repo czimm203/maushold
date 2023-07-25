@@ -69,15 +69,15 @@ async def fetch_all():
         sem = asyncio.Semaphore(MAX_CONN)
         for i in range(79):
             url = f"https://www2.census.gov/geo/tiger/TIGER2022/TABBLOCK20/tl_2022_{i:02}_tabblock20.zip"
-            tasks.append(create_task(client, url, sem, data_dir / "blocks"))
+            tasks.append(create_task(client, url, sem, data_dir))
 
         for i in range(79):
             url = f"https://www2.census.gov/geo/tiger/TIGER2022/BG/tl_2022_{i:02}_bg.zip"
-            tasks.append(create_task(client, url, sem, data_dir / "block_groups"))
+            tasks.append(create_task(client, url, sem, data_dir))
 
         for i in range(79):
             url = f"https://www2.census.gov/geo/tiger/TIGER2022/TRACT/tl_2022_{i:02}_tract.zip"
-            tasks.append(create_task(client, url, sem, data_dir / "tracts"))
+            tasks.append(create_task(client, url, sem, data_dir))
         
         tasks.append(create_task(client, "https://www2.census.gov/geo/tiger/TIGER2022/COUNTY/tl_2022_us_county.zip", sem, data_dir))
         tasks.append(create_task(client, "https://www2.census.gov/geo/tiger/TIGER2022/STATE/tl_2022_us_state.zip", sem, data_dir))
