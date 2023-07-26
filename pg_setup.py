@@ -42,7 +42,7 @@ def get_table(file: str) -> str | None:
     if not file.endswith(".zip"):
         return None
     cats = {"state": "states",
-            "counties": "counties",
+            "county": "counties",
             "tract": "tracts",
             "bg": "block_groups",
             "tabblock20": "blocks"}
@@ -52,8 +52,8 @@ def get_table(file: str) -> str | None:
 
 if __name__ == "__main__":
     DSN = f"user={pg_user} password={pg_pass} host={pg_host} dbname={pg_db}"
-    with pg.connect(DSN) as conn:
-        conn.cursor().execute("CREATE EXTENSION IF NOT EXISTS postgis")
+    # with pg.connect(DSN) as conn:
+    #     conn.cursor().execute("CREATE EXTENSION IF NOT EXISTS postgis")
 
     first = {"states": True,
              "counties": True,
@@ -62,12 +62,77 @@ if __name__ == "__main__":
              "blocks": True
             }
 
-    for file in data_dir.iterdir():
-        print(file)
-        table = get_table(file.name)
-        if table == None:
-            continue
+    # for file in data_dir.iterdir():
+    #     print(file)
+    #     table = get_table(file.name)
+    #     if table == None:
+    #         continue
 
-        load_file_to_db(file, table, first[table])
-        if first[table]:
-            first[table] = False
+    #     load_file_to_db(file, table, first[table])
+    #     if first[table]:
+    #         first[table] = False
+    sql_stmts = ["ALTER TABLE blocks DROP COLUMN awater20;",
+                 "ALTER TABLE blocks DROP COLUMN aland20;",
+                 "ALTER TABLE blocks DROP COLUMN funcstat20;",
+                 "ALTER TABLE blocks DROP COLUMN uatype20;",
+                 "ALTER TABLE blocks DROP COLUMN uace20;",
+                 "ALTER TABLE blocks DROP COLUMN mtfcc20;",
+                 "ALTER TABLE blocks DROP COLUMN statefp20;",
+                 "ALTER TABLE blocks DROP COLUMN countyfp20;",
+                 "ALTER TABLE blocks DROP COLUMN tractce20;",
+                 "ALTER TABLE blocks DROP COLUMN blockce20;",
+                 "ALTER TABLE blocks RENAME COLUMN geoid20 TO geo_id;",
+                 "ALTER TABLE blocks RENAME COLUMN intptlon20 TO intptlon;",
+                 "ALTER TABLE blocks RENAME COLUMN intptlat20 TO intptlat;",
+                 "ALTER TABLE blocks RENAME COLUMN geom TO geog;",
+
+                 "ALTER TABLE block_groups DROP COLUMN awater;",
+                 "ALTER TABLE block_groups DROP COLUMN aland;",
+                 "ALTER TABLE block_groups DROP COLUMN funcstat;",
+                 "ALTER TABLE block_groups DROP COLUMN mtfcc;",
+                 "ALTER TABLE block_groups DROP COLUMN statefp;",
+                 "ALTER TABLE block_groups DROP COLUMN countyfp;",
+                 "ALTER TABLE block_groups DROP COLUMN tractce;",
+                 "ALTER TABLE block_groups DROP COLUMN blkgrpce;",
+                 "ALTER TABLE block_groups RENAME COLUMN geoid TO geo_id;",
+                 "ALTER TABLE block_groups RENAME COLUMN geom TO geog;",
+
+                 "ALTER TABLE tracts DROP COLUMN awater;",
+                 "ALTER TABLE tracts DROP COLUMN aland;",
+                 "ALTER TABLE tracts DROP COLUMN funcstat;",
+                 "ALTER TABLE tracts DROP COLUMN mtfcc;",
+                 "ALTER TABLE tracts DROP COLUMN statefp;",
+                 "ALTER TABLE tracts DROP COLUMN countyfp;",
+                 "ALTER TABLE tracts DROP COLUMN tractce;",
+                 "ALTER TABLE tracts RENAME COLUMN geoid TO geo_id;",
+                 "ALTER TABLE tracts RENAME COLUMN geom TO geog;",
+
+                 "ALTER TABLE counties DROP COLUMN awater;",
+                 "ALTER TABLE counties DROP COLUMN aland;",
+                 "ALTER TABLE counties DROP COLUMN funcstat;",
+                 "ALTER TABLE counties DROP COLUMN mtfcc;",
+                 "ALTER TABLE counties DROP COLUMN statefp;",
+                 "ALTER TABLE counties DROP COLUMN countyfp;",
+                 "ALTER TABLE counties RENAME COLUMN geoid TO geo_id;",
+                 "ALTER TABLE counties RENAME COLUMN geom TO geog;",
+
+                 "ALTER TABLE states DROP COLUMN awater;",
+                 "ALTER TABLE states DROP COLUMN aland;",
+                 "ALTER TABLE states DROP COLUMN funcstat;",
+                 "ALTER TABLE states DROP COLUMN mtfcc;",
+                 "ALTER TABLE states DROP COLUMN statefp;",
+                 "ALTER TABLE states RENAME COLUMN geoid TO geo_id;",
+                 "ALTER TABLE states RENAME COLUMN geom TO geog;",
+                ]
+    with pg.connect(DSN) as conn:
+        for stmt in sql_stmts:
+            print(stmt)
+            conn.execute(stmt.encode())
+
+        for table in first:
+            print("Making GIST index for ", table)
+            sql = f'CREATE INDEX "{table}_goeg" ON "{table}" USING GIST("geog");'.encode()
+            conn.execute(sql)
+            print("Making geoid index for ", table)
+            sql = f'CREATE INDEX "{table}_id" ON "{table}" ("geo_id" ASC);'.encode()
+            conn.execute(sql)
