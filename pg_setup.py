@@ -50,6 +50,17 @@ def get_table(file: str) -> str | None:
         if file.find(cat) != -1:
             return cats[cat]
 
+def get_all_files(directory: Path)->list[Path]:
+    files = []
+    for item in directory.iterdir():
+        if item.is_file():
+            files.append(item)
+        elif item.is_dir():
+            for nested in item.iterdir():
+                files.append(nested)
+    return files
+
+
 if __name__ == "__main__":
     DSN = f"user={pg_user} password={pg_pass} host={pg_host} dbname={pg_db}"
     with pg.connect(DSN) as conn:
@@ -61,8 +72,11 @@ if __name__ == "__main__":
              "block_groups": True,
              "blocks": True
             }
+    
+    files = get_all_files(data_dir)
+    print(files)
 
-    for file in data_dir.iterdir():
+    for file in files:
         print(file)
         table = get_table(file.name)
         if table == None:
