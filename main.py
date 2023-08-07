@@ -19,7 +19,7 @@ pg_pass = os.getenv("PGPASS")
 pg_host = os.getenv("PGHOST")
 pg_db = os.getenv("PGDB")
 DSN = f"user={pg_user} password={pg_pass} host={pg_host} dbname={pg_db}"
-pool = PgConnector(DSN)
+pool = PgConnector(DSN, num_workers=32, timeout=120)
 
 # sqlite_path = "file:./data/census.db?mode=ro&cache=shared&journal_mode=off&sync=off"
 # pool = Sqlite3Connector(sqlite_path, uri=True)
@@ -130,11 +130,9 @@ async def get_pop_by_polygon(cat: CensusCategory, json_str: str) -> list[GeoRefP
 
 @app.post("/polygon/{cat}/pop")
 async def get_pop_total_by_polygon(cat: CensusCategory, geometry: GeoJSON) -> PopTotal:
-    # db = await pool.connection()
     async with pool.connection() as db:
         data = await db.get_row_by_polygon(cat, geometry)
     pop = sum([row.pop for row in data if row.pop is not None])
-    # await db.conn.close()
     return PopTotal(pop=pop)
 
 @app.get("/polygon/{cat}/pop")
