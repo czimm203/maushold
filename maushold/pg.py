@@ -31,7 +31,6 @@ class PgConnector:
             raise ValueError("oops")
         finally:
             if db is not None:
-                print("pg")
                 await self.pool.putconn(db.conn)
 
         
