@@ -54,7 +54,6 @@ async def root():
 @app.get("/{cat}")
 async def get_cat_ids(cat: CensusCategory, limit=10_000, offset=0) -> list[str]:
     async with pool.connection() as db:
-    # db = await pool.connection()
         data = await db.get_ids(cat, limit, offset)
     return data
 
@@ -70,7 +69,6 @@ async def get_cat_pop(cat: CensusCategory, id: str) -> list[PopQuery]:
         for code in id.split(","):
             data = await db.get_pop_data(cat, code)
             [res.append(item) for item in data]
-    # await db.conn.close()
     return res
 
 @app.get("/{cat}/{id}")
@@ -80,20 +78,17 @@ async def get_cat_by_id(cat: CensusCategory, id: str) -> list[DbRow]:
 
     Ex: /tract/20109\*,01001\*
     """
-    # db = await pool.connection()
     async with pool.connection() as db:
         res = []
         for code in id.split(","):
             data = await db.get_row_data(cat, code)
             [res.append(item) for item in data]
-    # await db.conn.close()
     return res
 
 @app.get("/bbox/{cat}")
 async def get(cat: CensusCategory, minX: float, minY: float, maxX: float, maxY: float) -> list[GeoRefPopQuery]:
     poly = shapely.Polygon([(minX, minY), (maxX, minY), (maxX,maxY), (minX, maxY), (minX, minY)])
     async with pool.connection() as db:
-    # db = await pool.connection()
         data = await db.get_row_by_polygon(cat, poly)
     return data
 
@@ -101,23 +96,18 @@ async def get(cat: CensusCategory, minX: float, minY: float, maxX: float, maxY: 
 async def get_row_total(cat: CensusCategory, minX: float, minY: float, maxX: float, maxY: float) -> PopTotal:
     poly = shapely.Polygon([(minX, minY), (maxX, minY), (maxX,maxY), (minX, maxY), (minX, minY)])
     async with pool.connection() as db:
-    # db = await pool.connection()
         data = await db.get_row_by_polygon(cat, poly)
     pop = sum([row.pop for row in data if row.pop is not None])
-    # await db.conn.close()
     return PopTotal(pop=pop)
 
 @app.post("/polygon/{cat}")
 async def post_pop_by_polygon(cat: CensusCategory, geometry: GeoJSON) -> list[GeoRefPopQuery]:
-    # db = await pool.connection()
     async with pool.connection() as db:
         data = await db.get_row_by_polygon(cat, geometry)
-    # await db.conn.close()
     return data
 
 @app.get("/polygon/{cat}")
 async def get_pop_by_polygon(cat: CensusCategory, json_str: str) -> list[GeoRefPopQuery]:
-    # db = await pool.connection()
     async with pool.connection() as db:
         geojson = json.loads(json_str)
         try:
@@ -125,7 +115,6 @@ async def get_pop_by_polygon(cat: CensusCategory, json_str: str) -> list[GeoRefP
         except PydanticTypeError:
             raise HTTPException(status_code=422, detail="invalid geojson")
         data = await db.get_row_by_polygon(cat, geometry)
-    # await db.conn.close()
     return data
 
 @app.post("/polygon/{cat}/pop")
@@ -137,7 +126,6 @@ async def get_pop_total_by_polygon(cat: CensusCategory, geometry: GeoJSON) -> Po
 
 @app.get("/polygon/{cat}/pop")
 async def post_pop_total_by_polygon(cat: CensusCategory, json_str: str) -> PopTotal:
-    # db = await pool.connection()
     async with pool.connection() as db:
         geojson = json.loads(json_str)
         try:
@@ -146,7 +134,6 @@ async def post_pop_total_by_polygon(cat: CensusCategory, json_str: str) -> PopTo
             raise HTTPException(status_code=422, detail="invalid geojson")
         data = await db.get_row_by_polygon(cat, geometry)
         pop = sum([row.pop for row in data if row.pop is not None])
-    # await db.conn.close()
     return PopTotal(pop=pop)
 
 
