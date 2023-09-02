@@ -78,7 +78,7 @@ class PgDB(DataBase):
             return[GeoRefPopQuery(geo_id = "",pop = -1, lon = 0, lat = 0)]
         await cur.execute(f"""SELECT geo_id, pop,
                                clon AS lon,
-                               clon AS lat
+                               clat AS lat
                         FROM {cat.to_table()}
                         WHERE ST_Intersects(geog, %s)""", #type: ignore
                     (geo,)) 
