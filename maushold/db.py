@@ -16,5 +16,5 @@ class DataBase(ABC):
         pass
 
     @abstractmethod
-    async def get_row_by_polygon(self, cat: CensusCategory, geom: GeoJSON) -> list[GeoRefPopQuery]:
+    async def get_row_by_geometry(self, cat: CensusCategory, geom: GeoJSON) -> list[GeoRefPopQuery]:
         pass

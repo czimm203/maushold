@@ -31,19 +31,22 @@ class GeoRefPopQuery(BaseModel):
     lon: float
     lat: float
 
-class PolygonType(str, Enum):
+class GeometryType(str, Enum):
+    Point = "Point"
+    LineString = "LineString"
     Polygon = "Polygon"
+    MultiPoint = "Point"
+    MultiLineString = "MultiLineString"
     MultiPolygon = "MultiPolygon"
     GeometryCollection = "GeometryCollection"
-
 class GeoJSON(BaseModel):
-    type: PolygonType
+    type: GeometryType
     coordinates: list[float] | list[list[float]] | list[list[list[float]]] | list[list[list[list[float]]]]
     properties: Optional[dict[str, Any]]
 
     def to_shapely(self):
         match self.type:
-            case 'Polygon' | 'MultiPolygon':
+            case 'Point' | 'LineString' | 'Polygon' | 'MultiPoint' | 'MultiLineString' | 'MultiPolygon':
                 return shape(self.__dict__)
             case 'GeometryCollection':
                 return shapely.GeometryCollection(self.coordinates)

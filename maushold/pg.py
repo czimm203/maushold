@@ -70,7 +70,7 @@ class PgDB(DataBase):
         await cur.close()
         return res
 
-    async def get_row_by_polygon(self, cat: CensusCategory, geom: GeoJSON) -> list[GeoRefPopQuery]:
+    async def get_row_by_geometry(self, cat: CensusCategory, geom: GeoJSON) -> list[GeoRefPopQuery]:
         await register_types(self.conn)
         cur = self.conn.cursor(row_factory=class_row(GeoRefPopQuery))
         geo = geom.to_shapely()

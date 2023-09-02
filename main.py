@@ -89,21 +89,21 @@ async def get_cat_by_id(cat: CensusCategory, id: str) -> list[DbRow]:
 async def get(cat: CensusCategory, minX: float, minY: float, maxX: float, maxY: float) -> list[GeoRefPopQuery]:
     poly = shapely.Polygon([(minX, minY), (maxX, minY), (maxX,maxY), (minX, maxY), (minX, minY)])
     async with pool.connection() as db:
-        data = await db.get_row_by_polygon(cat, poly)
+        data = await db.get_row_by_geometry(cat, poly)
     return data
 
 @app.get("/bbox/{cat}/pop")
 async def get_row_total(cat: CensusCategory, minX: float, minY: float, maxX: float, maxY: float) -> PopTotal:
     poly = shapely.Polygon([(minX, minY), (maxX, minY), (maxX,maxY), (minX, maxY), (minX, minY)])
     async with pool.connection() as db:
-        data = await db.get_row_by_polygon(cat, poly)
+        data = await db.get_row_by_geometry(cat, poly)
     pop = sum([row.pop for row in data if row.pop is not None])
     return PopTotal(pop=pop)
 
 @app.post("/polygon/{cat}")
 async def post_pop_by_polygon(cat: CensusCategory, geometry: GeoJSON) -> list[GeoRefPopQuery]:
     async with pool.connection() as db:
-        data = await db.get_row_by_polygon(cat, geometry)
+        data = await db.get_row_by_geometry(cat, geometry)
     return data
 
 @app.get("/polygon/{cat}")
@@ -114,13 +114,13 @@ async def get_pop_by_polygon(cat: CensusCategory, json_str: str) -> list[GeoRefP
             geometry = GeoJSON(**geojson)
         except PydanticTypeError:
             raise HTTPException(status_code=422, detail="invalid geojson")
-        data = await db.get_row_by_polygon(cat, geometry)
+        data = await db.get_row_by_geometry(cat, geometry)
     return data
 
 @app.post("/polygon/{cat}/pop")
 async def get_pop_total_by_polygon(cat: CensusCategory, geometry: GeoJSON) -> PopTotal:
     async with pool.connection() as db:
-        data = await db.get_row_by_polygon(cat, geometry)
+        data = await db.get_row_by_geometry(cat, geometry)
     pop = sum([row.pop for row in data if row.pop is not None])
     return PopTotal(pop=pop)
 
@@ -132,7 +132,7 @@ async def post_pop_total_by_polygon(cat: CensusCategory, json_str: str) -> PopTo
             geometry = GeoJSON(**geojson)
         except PydanticTypeError:
             raise HTTPException(status_code=422, detail="invalid geojson")
-        data = await db.get_row_by_polygon(cat, geometry)
+        data = await db.get_row_by_geometry(cat, geometry)
         pop = sum([row.pop for row in data if row.pop is not None])
     return PopTotal(pop=pop)
 
