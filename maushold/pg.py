@@ -1,5 +1,4 @@
 from __future__ import annotations
-from collections.abc import AsyncGenerator
 
 from .db import DataBase
 from .models import DbRow, PopQuery, CensusCategory, GeoRefPopQuery, GeoJSON
@@ -9,6 +8,7 @@ from psycopg_pool import AsyncConnectionPool
 from psycopg.rows import class_row, dict_row
 from psycopg.types import TypeInfo
 from psycopg.types.shapely import register_shapely
+from pyproj import CRS
 from shapely.geometry import mapping
 
 async def register_types(conn: AsyncConnection):
