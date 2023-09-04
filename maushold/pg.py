@@ -8,8 +8,9 @@ from psycopg_pool import AsyncConnectionPool
 from psycopg.rows import class_row, dict_row
 from psycopg.types import TypeInfo
 from psycopg.types.shapely import register_shapely
-from pyproj import CRS
 from shapely.geometry import mapping
+
+
 
 async def register_types(conn: AsyncConnection):
     info = await TypeInfo.fetch(conn, "geometry")

@@ -1,19 +1,30 @@
 import json
 import os
+from typing import Optional
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic.errors import PydanticTypeError
+from shapely.geometry import mapping
 from shapely.geometry.base import shapely
 from starlette.responses import HTMLResponse
 from maushold.sqlite import SqliteDB, Sqlite3Connector 
 from maushold.pg import PgConnector, PgDB
-from maushold.models import CensusCategory, DbRow, GeoRefPopQuery, Polygon, GeoJSON, PopQuery, PopTotal
-from psycopg_pool import AsyncConnectionPool
+from maushold.models import CensusCategory, DbRow, GeoRefPopQuery, Polygon, GeoJSON, PopQuery, PopTotal, Unit, conversion_to_m
+from pyproj.proj import Proj
+from pyproj.transformer import Transformer
+from shapely.ops import transform
 
 load_dotenv()
+
+project = Transformer.from_crs(4269, 3395, always_xy=True)
+# project1 = Transformer.from_proj(
+#         Proj(init="espg:4269"),
+#         Proj(init="espg:3395"))
+project1 = Transformer.from_crs(3395, 4269, always_xy=True)
+
 pg_user = os.getenv("PGUSER")
 pg_pass = os.getenv("PGPASS")
 pg_host = os.getenv("PGHOST")
@@ -101,25 +112,37 @@ async def get_row_total(cat: CensusCategory, minX: float, minY: float, maxX: flo
     return PopTotal(pop=pop)
 
 @app.post("/polygon/{cat}")
-async def post_pop_by_polygon(cat: CensusCategory, geometry: GeoJSON) -> list[GeoRefPopQuery]:
+async def post_pop_by_polygon(cat: CensusCategory, geometry: GeoJSON, buffer: Optional[float]=None, unit: Optional[Unit]=None) -> list[GeoRefPopQuery]:
     async with pool.connection() as db:
+        if unit is not None and buffer is not None:
+            geo = transform(project.transform, geometry.to_shapely())
+            geo = transform(project1.transform, geo.buffer(buffer * conversion_to_m[unit]))
+            geometry = GeoJSON(**mapping(geo))
         data = await db.get_row_by_geometry(cat, geometry)
     return data
 
 @app.get("/polygon/{cat}")
-async def get_pop_by_polygon(cat: CensusCategory, json_str: str) -> list[GeoRefPopQuery]:
+async def get_pop_by_polygon(cat: CensusCategory, json_str: str, buffer: Optional[float]=None, unit: Optional[Unit]=None) -> list[GeoRefPopQuery]:
     async with pool.connection() as db:
         geojson = json.loads(json_str)
         try:
             geometry = GeoJSON(**geojson)
+            if unit is not None and buffer is not None:
+                geo = transform(project.transform, geometry.to_shapely())
+                geo = transform(project1.transform, geo.buffer(buffer * conversion_to_m[unit]))
+                geometry = GeoJSON(**mapping(geo))
         except PydanticTypeError:
             raise HTTPException(status_code=422, detail="invalid geojson")
         data = await db.get_row_by_geometry(cat, geometry)
     return data
 
 @app.post("/polygon/{cat}/pop")
-async def get_pop_total_by_polygon(cat: CensusCategory, geometry: GeoJSON) -> PopTotal:
+async def get_pop_total_by_polygon(cat: CensusCategory, geometry: GeoJSON, buffer: Optional[float]=None, unit: Optional[Unit]=None) -> PopTotal:
     async with pool.connection() as db:
+        if unit is not None and buffer is not None:
+            geo = transform(project.transform, geometry.to_shapely())
+            geo = transform(project1.transform, geo.buffer(buffer * conversion_to_m[unit]))
+            geometry = GeoJSON(**mapping(geo))
         data = await db.get_row_by_geometry(cat, geometry)
     pop = sum([row.pop for row in data if row.pop is not None])
     return PopTotal(pop=pop)

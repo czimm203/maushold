@@ -39,6 +39,7 @@ class GeometryType(str, Enum):
     MultiLineString = "MultiLineString"
     MultiPolygon = "MultiPolygon"
     GeometryCollection = "GeometryCollection"
+
 class GeoJSON(BaseModel):
     type: GeometryType
     coordinates: list[float] | list[list[float]] | list[list[list[float]]] | list[list[list[list[float]]]]
@@ -51,12 +52,13 @@ class GeoJSON(BaseModel):
             case 'GeometryCollection':
                 return shapely.GeometryCollection(self.coordinates)
 
+
 class CensusCategory(str, Enum):
-    state = 'state'
-    county = 'county'
-    tract = 'tract'
+    state       = 'state'
+    county      = 'county'
+    tract       = 'tract'
     block_group = 'block_group'
-    block = 'block'
+    block       = 'block'
 
     def to_table(self) -> str:
         match self:
@@ -101,3 +103,15 @@ class Polygon(BaseModel):
         poly = shapely.Polygon(self.coordinates[0])
         return shapely.contains(poly, shapely.Point(x,y))
             
+class Unit(str, Enum):
+    meters     = 'm'
+    miles      = 'mi'
+    kilometers = 'km'
+    ft         = 'ft'
+
+conversion_to_m = {
+    'm': 1,
+    'mi': 1609.344,
+    'km': 1000,
+    'ft': 0.3048
+}
