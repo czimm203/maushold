@@ -57,7 +57,7 @@ async function postData(jsonstr: string): Promise<[popResponse,popResponse]> {
       "Content-Type": "Application/json"
     }
   });
-  let j = await bgRes.json();
+  // let j = await bgRes.json();
   let blRes = await fetch("/polygon/block/pop", {
     method:"POST",
     body: jsonstr,
@@ -66,8 +66,10 @@ async function postData(jsonstr: string): Promise<[popResponse,popResponse]> {
       "Content-Type": "Application/json"
     }
   });
-  let j2 = await blRes.json()
-  return [j, j2];
+  // let j2 = await blRes.json()
+  let res = await Promise.all([bgRes, blRes]);
+  let [j, j2]  = await Promise.all([res[0].json(), res[1].json()]);
+  return [j, j2] as [popResponse, popResponse];
 }
 
 function dblHandle(_: L.LeafletMouseEvent) {
