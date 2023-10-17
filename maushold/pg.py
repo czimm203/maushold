@@ -77,9 +77,28 @@ class PgDB(DataBase):
         geo = geom.to_shapely()
         if geo is None:
             return[GeoRefPopQuery(geo_id = "",pop = -1, lon = 0, lat = 0)]
-        await cur.execute(f"""SELECT geo_id, pop,
-                               clon AS lon,
-                               clat AS lat
+        if cat == CensusCategory.block:
+            await cur.execute(f"""
+                                SELECT geo_id, pop, lon, lat 
+                                FROM (
+                                    SELECT blocks.geo_id, blocks.pop,
+                                       blocks.clon AS lon,
+                                       blocks.clat AS lat,
+                                       blocks.geog
+                                    FROM blocks
+                                    INNER JOIN counties
+                                    ON blocks.county_id = counties.geo_id
+                                    WHERE ST_Intersects(counties.geog, %s)
+                                    ) AS T
+                                WHERE ST_Intersects(T.geog, %s)
+
+                                        """, #type: ignore
+                                    (geo, geo)) 
+        else:
+            await cur.execute(f"""
+                        SELECT geo_id, pop,
+                           clon AS lon,
+                           clat AS lat
                         FROM {cat.to_table()}
                         WHERE ST_Intersects(geog, %s)""", #type: ignore
                     (geo,)) 
