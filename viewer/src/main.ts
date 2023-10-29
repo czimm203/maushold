@@ -10,9 +10,6 @@ if(b) {
 }
 let layers = L.layerGroup().addTo(map);
 let ps = L.polygon([]).addTo(map);
-// let pts: Array<L.LatLngTuple> = [];
-
-
 
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -47,9 +44,17 @@ function clickHandle(ev: L.LeafletMouseEvent) {
 type popResponse = {
   population: number
 }
-async function postData(jsonstr: string): Promise<[popResponse,popResponse]> {
+async function postData(jsonstr: string): Promise<[popResponse,popResponse, popResponse]> {
   console.log(jsonstr);
-  let bgRes = await fetch("/polygon/block_group/pop", {
+  let blockRes = await fetch("/polygon/block/pop", {
+    method:"POST",
+    body: jsonstr,
+    headers: {
+      "Accept": "Application/json",
+      "Content-Type": "Application/json"
+    }
+  });
+  let blockGroupRes = await fetch("/polygon/block_group/pop", {
     method:"POST",
     body: jsonstr,
     headers: {
@@ -58,7 +63,7 @@ async function postData(jsonstr: string): Promise<[popResponse,popResponse]> {
     }
   });
   // let j = await bgRes.json();
-  let blRes = await fetch("/polygon/block/pop", {
+  let countyRes = await fetch("/polygon/county/pop", {
     method:"POST",
     body: jsonstr,
     headers: {
@@ -67,9 +72,9 @@ async function postData(jsonstr: string): Promise<[popResponse,popResponse]> {
     }
   });
   // let j2 = await blRes.json()
-  let res = await Promise.all([bgRes, blRes]);
-  let [j, j2]  = await Promise.all([res[0].json(), res[1].json()]);
-  return [j, j2] as [popResponse, popResponse];
+  let res = await Promise.all([blockRes, blockGroupRes, countyRes]);
+  let [j, j2, j3]  = await Promise.all([res[0].json(), res[1].json(), res[2].json()]);
+  return [j, j2, j3] as [popResponse, popResponse, popResponse];
 }
 
 function dblHandle(_: L.LeafletMouseEvent) {
@@ -100,4 +105,3 @@ function dblHandle(_: L.LeafletMouseEvent) {
 
 map.on("click", clickHandle);
 map.on("dblclick", dblHandle);
-
