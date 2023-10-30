@@ -7,15 +7,15 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic.errors import PydanticTypeError
+from shapely import geometry
 from shapely.geometry.base import shapely
 from starlette.responses import HTMLResponse
 from maushold.sqlite import SqliteDB, Sqlite3Connector 
 from maushold.pg import PgConnector, PgDB
-from maushold.models import CensusCategory, DbRow, GeoRefPopQuery, GeoJSON, PopQuery, PopTotal, Unit 
+from maushold.models import CensusCategory, DbRow, GeoRefPopQuery, GeoJSON, PopQuery, PopTotal, Unit, Feature, GeometryCollection
 from maushold.transform import make_buffered_geo
 
 load_dotenv()
-
 
 pg_user = os.getenv("PGUSER")
 pg_pass = os.getenv("PGPASS")
@@ -142,3 +142,16 @@ async def post_pop_total_by_polygon(cat: CensusCategory, json_str: str) -> PopTo
         data = await db.get_row_by_geometry(cat, geometry)
         pop = sum([row.pop for row in data if row.pop is not None])
     return PopTotal(pop=pop)
+
+@app.post("/polygon/{cat}/geometry")
+async def post_geometry(cat: CensusCategory, geojson_str: str) -> GeometryCollection:
+    async with pool.connection() as db:
+        geojson = json.loads(geojson_str)
+        try:
+            geometry = GeoJSON(**geojson)
+        except PydanticTypeError:
+            raise HTTPException(status_code=422, detail="invalid geojson")
+        data = await db.get_intersected_geometries(cat, geometry)
+        feat = [Feature(geometry=geo) for geo in data]
+        gc = GeometryCollection(features=feat)
+    return gc

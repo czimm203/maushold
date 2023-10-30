@@ -52,6 +52,14 @@ class GeoJSON(BaseModel):
             case 'GeometryCollection':
                 return shapely.GeometryCollection(self.coordinates)
 
+class Feature(BaseModel):
+    type: str = "Feature"
+    geometry: GeoJSON
+    properties: dict[str, Any] = {}
+
+class GeometryCollection(BaseModel):
+    type: str = "FeatureCollection"
+    features: list[Feature]
 
 class CensusCategory(str, Enum):
     state       = 'state'

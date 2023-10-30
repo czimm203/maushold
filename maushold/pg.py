@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from shapely.geometry.base import shapely
+
 from .db import DataBase
 from .models import DbRow, PopQuery, CensusCategory, GeoRefPopQuery, GeoJSON
 from contextlib import asynccontextmanager
@@ -106,4 +108,33 @@ class PgDB(DataBase):
         await cur.close()
         return res
 
+    async def get_intersected_geometries(self, cat: CensusCategory, geom: GeoJSON) -> list[GeoJSON]:
+        await register_types(self.conn)
+        cur = self.conn.cursor()
+        geo = geom.to_shapely()
+        if geo is None:
+            return[]
+        if cat == CensusCategory.block:
+            await cur.execute(f"""
+                                SELECT geog
+                                FROM (
+                                    SELECT blocks.geo_id, 
+                                       blocks.geog
+                                    FROM blocks
+                                    INNER JOIN counties
+                                    ON blocks.county_id = counties.geo_id
+                                    WHERE ST_Intersects(counties.geog, %s)
+                                    ) AS T
+                                WHERE ST_Intersects(T.geog, %s)
+                                """, #type: ignore
+                                    (geo, geo)) 
+        else:
+            await cur.execute(f"""
+                        SELECT geog
+                        FROM {cat.to_table()}
+                        WHERE ST_Intersects(geog, %s)""", #type: ignore
+                    (geo,)) 
+        res = await cur.fetchall()
+        await cur.close()
+        return [GeoJSON(**mapping(feat[0])) for feat in res]
 
