@@ -42,8 +42,9 @@ function clickHandle(ev: L.LeafletMouseEvent) {
   };
 }
 type popResponse = {
-  population: number
+  pop: number
 }
+
 async function postData(jsonstr: string): Promise<[popResponse,popResponse, popResponse]> {
   console.log(jsonstr);
   let blockRes = await fetch("/polygon/block/pop", {
@@ -62,7 +63,6 @@ async function postData(jsonstr: string): Promise<[popResponse,popResponse, popR
       "Content-Type": "Application/json"
     }
   });
-  // let j = await bgRes.json();
   let countyRes = await fetch("/polygon/county/pop", {
     method:"POST",
     body: jsonstr,
@@ -71,25 +71,37 @@ async function postData(jsonstr: string): Promise<[popResponse,popResponse, popR
       "Content-Type": "Application/json"
     }
   });
-  // let j2 = await blRes.json()
   let res = await Promise.all([blockRes, blockGroupRes, countyRes]);
-  let [j, j2, j3]  = await Promise.all([res[0].json(), res[1].json(), res[2].json()]);
-  return [j, j2, j3] as [popResponse, popResponse, popResponse];
+  let pops = await Promise.all([res[0].json(), res[1].json(), res[2].json()]);
+  return pops
+}
+
+type PopReadout = {
+  block: number,
+  block_group: number
+  county: number
 }
 
 function dblHandle(_: L.LeafletMouseEvent) {
   switch(state[curState]) {
     case "selecting":
       const gjson = ps.toGeoJSON();
-      const pop = postData(JSON.stringify(gjson.geometry));
       const center = ps.getBounds().getCenter();
+      const pop = postData(JSON.stringify(gjson.geometry));
       pop.then((p) => {
+        console.log(p);
+        const thing: PopReadout = {
+          block: p[0].pop ?? 0,
+          block_group: p[1].pop ?? 0,
+          county: p[2].pop ?? 0,
+
+        } 
         L.popup({
           autoClose: false,
           closeOnClick: false
         })
           .setLatLng(center)
-          .setContent(JSON.stringify(p))
+          .setContent(JSON.stringify(thing))
           .addTo(map)
           .openPopup(center);
       });
